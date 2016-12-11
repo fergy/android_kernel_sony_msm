@@ -7757,8 +7757,10 @@ static long clearpad_debug_pca_ioctl(struct file *file,
 
 	switch (cmd) {
 	case SYN_PCA_IOCTL_GET:
+		LOCK(&this->lock);
 		rc = clearpad_read_pca_block(this, pca_info.block_pos,
 					     pca_info.data);
+		UNLOCK(&this->lock);
 		if (rc)
 			break;
 
@@ -7769,8 +7771,10 @@ static long clearpad_debug_pca_ioctl(struct file *file,
 		}
 		break;
 	case SYN_PCA_IOCTL_SET:
+		LOCK(&this->lock);
 		rc = clearpad_write_pca_block(this, pca_info.block_pos,
 					 pca_info.data);
+		UNLOCK(&this->lock);
 		break;
 	default:
 		rc = -EINVAL;
@@ -8029,7 +8033,7 @@ static int clearpad_probe(struct platform_device *pdev)
 		goto err_in_create_link;
 	}
 
-	if (likely(this->post_probe.start)) {
+	if (this->post_probe.start) {
 		HWLOGI(this, "schedule post probe\n");
 		schedule_delayed_work(&this->post_probe.work, 0);
 	} else {
@@ -8211,7 +8215,7 @@ static void clearpad_thread_resume_work(struct work_struct *work)
 	if (clearpad_handle_if_first_event(this) < 0)
 		LOGE(this, "failed to handle first event\n");
 
-		touchctrl_unlock_power(this, "fb_unblank");
+	touchctrl_unlock_power(this, "fb_unblank");
 
 	get_monotonic_boottime(&ts);
 	HWLOGI(this, "end thread_resume @ %ld.%06ld\n",
